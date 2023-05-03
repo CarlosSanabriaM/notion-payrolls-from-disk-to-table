@@ -1,0 +1,19 @@
+{
+  "name": "notion-payrolls-from-disk-to-table",
+  "version": "1.0.0",
+  "description": "Uploads a bunch of payrolls to a Notion table",
+  "main": "index.js",
+  "engines": {
+    "node": "12.x"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": ""
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.1.1",
+    "dotenv": "^16.0.1"
+  },
+  "author": "Carlos Sanabria Miranda",
+  "license": "MIT"
+}
