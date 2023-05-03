@@ -15,5 +15,5 @@ package-lock.json
 .env
 
 ## Payrolls ##
-payrolls/
+payrolls/*
 !payrolls/.gitkeep
