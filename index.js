@@ -147,20 +147,22 @@ async function setSalary(payroll) {
 
       // If we have 2 items, then we may have one of the ammounts we are looking for
       if (row.length == 2) {
-        if (row[0] == "A. TOTAL DEVENGADO") {
-          // payroll.grossSalary = extractNumberFromRowString(rowString)
-          //grossSalary = extractNumberFromRowString(rowString)
-          console.log(`grossSalary: ${parseSpanishFloatStringtoFloat(item.text)}`)
-        }
-        else if (row[0] == "B. TOTAL A DEDUCIR") {
-          // payroll.deductions = extractNumberFromRowString(rowString)
-          //deductions = extractNumberFromRowString(rowString)
-          console.log(`deductions: ${parseSpanishFloatStringtoFloat(item.text)}`)
-        }
-        else if (row[0] == "LIQUIDO TOTAL A PERCIBIR (A-B)") {
-          // payroll.netSalary = extractNumberFromRowString(rowString)
-          //netSalary = extractNumberFromRowString(rowString)
-          console.log(`netSalary: ${parseSpanishFloatStringtoFloat(item.text)}`)
+        switch (row[0]) {
+          case "A. TOTAL DEVENGADO":
+            // payroll.grossSalary = extractNumberFromRowString(rowString)
+            // grossSalary = extractNumberFromRowString(rowString)
+            console.log(`grossSalary: ${parseSpanishFloatStringtoFloat(row[1])}`)
+            break;
+          case "B. TOTAL A DEDUCIR":
+            // payroll.deductions = extractNumberFromRowString(rowString)
+            // deductions = extractNumberFromRowString(rowString)
+            console.log(`deductions: ${parseSpanishFloatStringtoFloat(row[1])}`)
+            break;
+          case "LIQUIDO TOTAL A PERCIBIR (A-B)":
+            // payroll.netSalary = extractNumberFromRowString(rowString)
+            // netSalary = extractNumberFromRowString(rowString)
+            console.log(`netSalary: ${parseSpanishFloatStringtoFloat(row[1])}`)
+            break;
         }
       }
     }
