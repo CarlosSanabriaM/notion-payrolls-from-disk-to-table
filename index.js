@@ -89,8 +89,6 @@ async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName) 
   // Set salary
   await setSalary(payroll)
 
-  //console.log(`grossSalary: ${payroll.grossSalary}, deductions: ${payroll.deductions}, netSalary: ${payroll.netSalary}`)
-
   // Log payroll
   console.log(payroll)
 
@@ -130,42 +128,43 @@ function setPayrollNameAndDate(payroll) {
 async function setSalary(payroll) {
   var row, previousY
 
-  // Read the PDF file line by line and set the grossSalary, deductions and netSalary
-  new PdfReader().parseFileItems(payroll.filePath, function (err, item) {
-    // If item and item.text are defined
-    if (item && item.text) {
-      // The y represents the vertical position of the item
-      // If the y value of the current item is different from the y value of the previous item,
-      // then we are in a new row, and we can discard the contents of the previous row, because we don't need them
-      if (item.y != previousY) {
-        row = [] // start new row with 0 items
-        previousY = item.y
-      }
+  // The parseFileItems() function is an async function that receives a callback that can be called multiple times.
+  // Is asynchronous, so the execution doesn't wait for it to finish, but we need to wait until we get the following values: grossSalary, deductions and netSalary.
+  // To fix this, we create a Promise that waits until it receives a callback invocation with the netSalary.
+  return new Promise((resolve, reject) => {
+    // Read the PDF file line by line and set the grossSalary, deductions and netSalary
+    new PdfReader().parseFileItems(payroll.filePath, function (err, item) {
+      // If item and item.text are defined
+      if (item && item.text) {
+        // The y represents the vertical position of the item
+        // If the y value of the current item is different from the y value of the previous item,
+        // then we are in a new row, and we can discard the contents of the previous row, because we don't need them
+        if (item.y != previousY) {
+          row = [] // start new row with 0 items
+          previousY = item.y
+        }
 
-      // Accumulate text items of the current row
-      row.push(item.text)
+        // Accumulate text items of the current row
+        row.push(item.text)
 
-      // If we have 2 items, then we may have one of the ammounts we are looking for
-      if (row.length == 2) {
-        switch (row[0]) {
-          case "A. TOTAL DEVENGADO":
-            // payroll.grossSalary = extractNumberFromRowString(rowString)
-            // grossSalary = extractNumberFromRowString(rowString)
-            console.log(`grossSalary: ${parseSpanishFloatStringtoFloat(row[1])}`)
-            break;
-          case "B. TOTAL A DEDUCIR":
-            // payroll.deductions = extractNumberFromRowString(rowString)
-            // deductions = extractNumberFromRowString(rowString)
-            console.log(`deductions: ${parseSpanishFloatStringtoFloat(row[1])}`)
-            break;
-          case "LIQUIDO TOTAL A PERCIBIR (A-B)":
-            // payroll.netSalary = extractNumberFromRowString(rowString)
-            // netSalary = extractNumberFromRowString(rowString)
-            console.log(`netSalary: ${parseSpanishFloatStringtoFloat(row[1])}`)
-            break;
+        // If we have 2 items, then we may have one of the ammounts we are looking for
+        if (row.length == 2) {
+          switch (row[0]) {
+            case "A. TOTAL DEVENGADO":
+              payroll.grossSalary = parseSpanishFloatStringtoFloat(row[1])
+              break;
+            case "B. TOTAL A DEDUCIR":
+              payroll.deductions = parseSpanishFloatStringtoFloat(row[1])
+              break;
+            case "LIQUIDO TOTAL A PERCIBIR (A-B)":
+              payroll.netSalary = parseSpanishFloatStringtoFloat(row[1])
+              // Resolve the promise to signal that we're done
+              resolve()
+              break;
+          }
         }
       }
-    }
+    });
   });
 }
 
