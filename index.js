@@ -294,21 +294,28 @@ async function uploadPayrollFileToGoogleDrive(authClient, payroll, parentFolderI
 /**
  * Search folder in Google Drive inside the specified parent folder.
  * @param {OAuth2Client} authClient An authorized OAuth2 client.
+ *
+ * @return {string|null} The folder id if there was exactly one match, or null if there is no match.
  * */
 async function searchFolder(authClient, folderName, parentFolderId) {
   const drive = google.drive({ version: 'v3', auth: authClient });
 
-  const files = [];
   const res = await drive.files.list({
     q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and parents in '${parentFolderId}'`,
-    fields: 'nextPageToken, files(id, name)',
+    fields: 'nextPageToken, files(id, name, createdTime, parents)',
     spaces: 'drive',
   });
-  Array.prototype.push.apply(files, res.files);
-  res.data.files.forEach(function (folder) {
-    console.log(`Found folder. Name: ${folder.name}. Id: ${folder.id}`);
-  });
-  return res.data.files;
+  const matchedFolders = res.data.files
+
+  // Log all matches
+  matchedFolders.forEach((folder) => console.log(`Found folder. Name: ${folder.name}. Id: ${folder.id}. Created time: ${folder.createdTime}. Parents: ${folder.parents}.`));
+
+  // If there is more than 1 match, throw an Error
+  if (matchedFolders.length > 1)
+    throw new Error("There is more than 1 folder match. The folder may not exist, or may exist once, but not multitple times.")
+
+  // Return the folder id if it was found and null otherwise
+  return matchedFolders.length == 1 ? matchedFolders[0].id : null;
 }
 
 /**
