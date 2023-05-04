@@ -84,7 +84,7 @@ async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName) 
   payroll.filePath = path.join(__dirname, 'payrolls', payrollFileName)
 
   // Set name and date
-  setPayrollNameAndDate(payroll)
+  setNameAndDate(payroll)
 
   // Set salary
   await setSalary(payroll)
@@ -102,7 +102,7 @@ async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName) 
 /**
  * Sets name and date in a {@link Payroll} object using the payroll file name.
  */
-function setPayrollNameAndDate(payroll) {
+function setNameAndDate(payroll) {
   const regex = /(\d{4})-(\d{2})(-extra)?\.pdf$/ // matches four digits for the year and two digits for the month, with optional "-extra" text after the month
   const match = payroll.fileName.match(regex)
 
