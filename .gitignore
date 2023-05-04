@@ -20,3 +20,7 @@ package-lock.json
 ## Payrolls ##
 payrolls/*
 !payrolls/.gitkeep
+
+## Google API ##
+credentials.json
+token.json
