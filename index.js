@@ -19,6 +19,7 @@ dotenv.config()
 const notion = new Client({ auth: process.env.NOTION_KEY })
 const destDatabaseId = process.env.NOTION_DEST_DATABASE_ID
 const company = process.env.COMPANY
+const googleDriveParentFolderId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID
 
 //endregion
 
@@ -103,7 +104,8 @@ async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName, 
   console.log(payroll)
 
   // Upload payroll file to Google Drive
-  uploadFileToGoogleDrive(googleAuthClient, payroll)
+  // TODO: Create parent folder with the year
+  //uploadFileToGoogleDrive(googleAuthClient, payroll)
 
   // Add payroll to the destination database
   // addPayrollToDestDatabase(payroll)
@@ -249,6 +251,25 @@ function parseSpanishFloatStringtoFloat(numString) {
 }
 
 /**
+ * Creates a folder in Google Drive inside the specified parent folder.
+ * @param {OAuth2Client} authClient An authorized OAuth2 client.
+ */
+ async function createFolderInGoogleDrive(authClient, folderName, parentFolderId) {
+  const drive = google.drive({version: 'v3', auth: authClient});
+  
+  const res = await drive.files.create({
+    requestBody: {
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: [parentFolderId] // create folder inside the specified folder
+    },
+    fields: 'id'
+  });
+  console.log(`Created folder in Google Drive. Folder name: ${folderName}. Folder id: ${res.data.id}`);
+
+  return res.data.id
+}
+
  * Uploads a payroll file to Google Drive.
  * @param {OAuth2Client} authClient An authorized OAuth2 client.
  */
@@ -289,6 +310,9 @@ async function main() {
   // Create Google client to interact with Google Drive
   // Loads authorization data stored in token.json file, or requests authorization to the user and stores it in token.json
   const googleAuthClient = await authorize()
+
+  // Create folder in Google Drive
+  await createFolderInGoogleDrive(googleAuthClient, "testFolder", googleDriveParentFolderId)
 
   let numPayrollFile = 0
   // Get all payroll file names
