@@ -85,7 +85,7 @@ function getAllPayrollFileNames() {
 /**
  * Create a {@link Payroll} object from the given payroll file name.
  */
-async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName) {
+async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName, googleAuthClient) {
   const payroll = new Payroll()
 
   // Store the payroll number, file path and file name
@@ -103,17 +103,7 @@ async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName) 
   console.log(payroll)
 
   // Upload payroll file to Google Drive
-  // 1. Authorize
-  const googleAuthClient = await authorize()
-  // 2. Upload
   uploadFileToGoogleDrive(googleAuthClient, payroll)
-
-  // authorize().then(uploadFileToGoogleDrive(payroll)).catch(console.error);
-  //authorize().then(() => uploadFileToGoogleDrive(authClient, payroll)).catch(console.error);
-
-  // The Notion API currently does not support uploading new files.
-  // https://developers.notion.com/docs/working-with-files-and-media#uploading-files-and-media-via-the-notion-api
-  // Notion recommends to host the files externally and specify the link in Notion.
 
   // Add payroll to the destination database
   // addPayrollToDestDatabase(payroll)
@@ -234,7 +224,13 @@ function parseSpanishFloatStringtoFloat(numString) {
 }
 
 /**
- * Load or request or authorization to call APIs.
+ * Load or request authorization to call APIs.
+ * 
+ * - If token.json file exists and contains previously authorized credentials,
+ * it uses them to create the Google client.
+ * 
+ * - If token.json doesn't exist or it doesn't contain previously authorized credentials,
+ * it asks the user to authenticate, creates the Google client, and stores the credentials in token.json.
  *
  */
  async function authorize() {
@@ -290,8 +286,11 @@ async function getDestDatabaseSchema() {
  * and then add that object to the database.
  */
 async function main() {
-  let numPayrollFile = 0
+  // Create Google client to interact with Google Drive
+  // Loads authorization data stored in token.json file, or requests authorization to the user and stores it in token.json
+  const googleAuthClient = await authorize()
 
+  let numPayrollFile = 0
   // Get all payroll file names
   const payrollFileNames = await getAllPayrollFileNames()
   // Loop through each payroll file name
@@ -300,7 +299,7 @@ async function main() {
     numPayrollFile++
 
     // Create a Payroll object with the payroll info
-    createPayrollFromPayrollFileName(numPayrollFile, payrollFileName)
+    createPayrollFromPayrollFileName(numPayrollFile, payrollFileName, googleAuthClient)
   }
 
   console.log(`\nTotal number of payroll files: ${numPayrollFile}\n`)
