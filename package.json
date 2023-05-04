@@ -4,7 +4,7 @@
   "description": "Uploads a bunch of payrolls to a Notion table",
   "main": "index.js",
   "engines": {
-    "node": "12.x"
+    "node": "19.x"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@notionhq/client": "^2.1.1",
-    "dotenv": "^16.0.1"
+    "dotenv": "^16.0.1",
+    "pdfreader": "^2.0.0"
   },
   "author": "Carlos Sanabria Miranda",
   "license": "MIT"
