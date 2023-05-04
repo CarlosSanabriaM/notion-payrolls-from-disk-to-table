@@ -9,6 +9,9 @@ const dotenv = require("dotenv")
 const fs = require("fs");
 const path = require("path");
 const { PdfReader, Rule } = require("pdfreader");
+const process = require('process');
+const {authenticate} = require('@google-cloud/local-auth');
+const {google} = require('googleapis');
 
 //region Read config from .env file
 
@@ -35,6 +38,13 @@ const monthNames = {
   "11": "Noviembre",
   "12": "Diciembre"
 };
+
+// Google API
+const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+// The file token.json stores the user's access and refresh tokens,
+// and is created automatically when the authorization flow completes for the first time.
+const TOKEN_PATH = path.join(process.cwd(), 'token.json');
+const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
 
 //endregion
 
@@ -92,8 +102,18 @@ async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName) 
   // Log payroll
   console.log(payroll)
 
-  // The API currently does not support uploading new files.
+  // Upload payroll file to Google Drive
+  // 1. Authorize
+  const googleAuthClient = await authorize()
+  // 2. Upload
+  uploadFileToGoogleDrive(googleAuthClient, payroll)
+
+  // authorize().then(uploadFileToGoogleDrive(payroll)).catch(console.error);
+  //authorize().then(() => uploadFileToGoogleDrive(authClient, payroll)).catch(console.error);
+
+  // The Notion API currently does not support uploading new files.
   // https://developers.notion.com/docs/working-with-files-and-media#uploading-files-and-media-via-the-notion-api
+  // Notion recommends to host the files externally and specify the link in Notion.
 
   // Add payroll to the destination database
   // addPayrollToDestDatabase(payroll)
@@ -177,6 +197,79 @@ function parseSpanishFloatStringtoFloat(numString) {
       .replace(".", "")
       .replace(",", ".")
   );
+}
+
+/**
+ * Reads previously authorized credentials from the save file.
+ *
+ * @return {Promise<OAuth2Client|null>}
+ */
+ async function loadSavedCredentialsIfExist() {
+  try {
+    const content = fs.readFileSync(TOKEN_PATH);
+    const credentials = JSON.parse(content);
+    return google.auth.fromJSON(credentials);
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Serializes credentials to a file compatible with GoogleAUth.fromJSON.
+ *
+ * @param {OAuth2Client} client
+ * @return {Promise<void>}
+ */
+ async function saveCredentials(client) {
+  const content = fs.readFileSync(CREDENTIALS_PATH);
+  const keys = JSON.parse(content);
+  const key = keys.installed || keys.web;
+  const payload = JSON.stringify({
+    type: 'authorized_user',
+    client_id: key.client_id,
+    client_secret: key.client_secret,
+    refresh_token: client.credentials.refresh_token,
+  });
+  fs.writeFileSync(TOKEN_PATH, payload);
+}
+
+/**
+ * Load or request or authorization to call APIs.
+ *
+ */
+ async function authorize() {
+  let client = await loadSavedCredentialsIfExist();
+  if (client) {
+    return client;
+  }
+  client = await authenticate({
+    scopes: SCOPES,
+    keyfilePath: CREDENTIALS_PATH,
+  });
+  if (client.credentials) {
+    await saveCredentials(client);
+  }
+  return client;
+}
+
+/**
+ * Uploads a payroll file to Google Drive.
+ * @param {OAuth2Client} authClient An authorized OAuth2 client.
+ */
+ async function uploadFileToGoogleDrive(authClient, payroll) {
+  const drive = google.drive({version: 'v3', auth: authClient});
+  
+  const res = await drive.files.create({
+    requestBody: {
+      name: payroll.fileName,
+      mimeType: 'application/pdf'
+    },
+    media: {
+      mimeType: 'application/pdf',
+      body: fs.createReadStream(payroll.filePath)
+    }
+  });
+  console.log(res.data);
 }
 
 /**
