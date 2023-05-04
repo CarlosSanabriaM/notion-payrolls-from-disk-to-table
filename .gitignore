@@ -4,6 +4,9 @@
 ## IDEA files ##
 *.idea
 
+## VS Code files ##
+.vscode
+
 ## Log files ##
 *.log
 
