@@ -270,16 +270,18 @@ function parseSpanishFloatStringtoFloat(numString) {
   return res.data.id
 }
 
- * Uploads a payroll file to Google Drive.
+/**
+ * Uploads a payroll file to Google Drive to the specified parent folder.
  * @param {OAuth2Client} authClient An authorized OAuth2 client.
  */
- async function uploadFileToGoogleDrive(authClient, payroll) {
+ async function uploadPayrollFileToGoogleDrive(authClient, payroll, parentFolderId) {
   const drive = google.drive({version: 'v3', auth: authClient});
   
   const res = await drive.files.create({
     requestBody: {
       name: payroll.fileName,
-      mimeType: 'application/pdf'
+      mimeType: 'application/pdf',
+      parents: [parentFolderId] // create folder inside the specified folder
     },
     media: {
       mimeType: 'application/pdf',
