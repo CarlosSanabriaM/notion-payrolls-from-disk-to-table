@@ -67,9 +67,7 @@ function getAllPayrollFileNames() {
     .filter(file => !file.match('.gitkeep')); // ignore .gitkeep file
 
   // Log file names
-  files.forEach((file) => {
-    console.log(file)
-  });
+  files.forEach((file) => console.log(file));
 
   return files
 }
@@ -130,49 +128,51 @@ function setPayrollNameAndDate(payroll) {
  * Sets the file in a {@link Payroll} object.
  */
 async function setSalary(payroll) {
-  var rows = {}
+  var row, previousY
 
-  // Read the PDF file and set the salary
+  // Read the PDF file line by line and set the grossSalary, deductions and netSalary
   new PdfReader().parseFileItems(payroll.filePath, function (err, item) {
-    if (!item) {
-      // end of file
-      setSalaryFromPdfRows(payroll, rows);
-    }
-    else if (item.text) {
-      // accumulate text items into rows object, per line
-      (rows[item.y] = rows[item.y] || []).push(item.text);
+    // If item and item.text are defined
+    if (item && item.text) {
+      // The y represents the vertical position of the item
+      // If the y value of the current item is different from the y value of the previous item,
+      // then we are in a new row, and we can discard the contents of the previous row, because we don't need them
+      if (item.y != previousY) {
+        row = [] // start new row with 0 items
+        previousY = item.y
+      }
+
+      // Accumulate text items of the current row
+      row.push(item.text)
+
+      // If we have 2 items, then we may have one of the ammounts we are looking for
+      if (row.length == 2) {
+        if (row[0] == "A. TOTAL DEVENGADO") {
+          // payroll.grossSalary = extractNumberFromRowString(rowString)
+          //grossSalary = extractNumberFromRowString(rowString)
+          console.log(`grossSalary: ${parseSpanishFloatStringtoFloat(item.text)}`)
+        }
+        else if (row[0] == "B. TOTAL A DEDUCIR") {
+          // payroll.deductions = extractNumberFromRowString(rowString)
+          //deductions = extractNumberFromRowString(rowString)
+          console.log(`deductions: ${parseSpanishFloatStringtoFloat(item.text)}`)
+        }
+        else if (row[0] == "LIQUIDO TOTAL A PERCIBIR (A-B)") {
+          // payroll.netSalary = extractNumberFromRowString(rowString)
+          //netSalary = extractNumberFromRowString(rowString)
+          console.log(`netSalary: ${parseSpanishFloatStringtoFloat(item.text)}`)
+        }
+      }
     }
   });
 }
 
-function setSalaryFromPdfRows(payroll, rows) {
-  var grossSalary, deductions, netSalary
-  Object.keys(rows) // => array of y-positions (type: float)
-    .sort((y1, y2) => parseFloat(y1) - parseFloat(y2)) // sort float positions
-    .forEach((y) => {
-      const rowString = (rows[y] || []).join(' ')
-
-      if (rowString.startsWith("A. TOTAL DEVENGADO")) {
-        // payroll.grossSalary = extractNumberFromRowString(rowString)
-        grossSalary = extractNumberFromRowString(rowString)
-      }
-      else if (rowString.startsWith("B. TOTAL A DEDUCIR")) {
-        // payroll.deductions = extractNumberFromRowString(rowString)
-        deductions = extractNumberFromRowString(rowString)
-      }
-      else if (rowString.startsWith("LIQUIDO TOTAL A PERCIBIR (A-B)")) {
-        // payroll.netSalary = extractNumberFromRowString(rowString)
-        netSalary = extractNumberFromRowString(rowString)
-      }
-    });
-  console.log(`grossSalary: ${grossSalary}, deductions: ${deductions}, netSalary: ${netSalary}`)
-}
-
-function extractNumberFromRowString(rowString) {
+/**
+ * Example: "2.345,67" -> 2345.67
+ */
+function parseSpanishFloatStringtoFloat(numString) {
   return parseFloat(
-    rowString
-      .split(' ')
-      .pop()
+    numString
       .replace(".", "")
       .replace(",", ".")
   );
