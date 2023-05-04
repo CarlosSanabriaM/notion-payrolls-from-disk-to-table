@@ -10,8 +10,8 @@ const fs = require("fs");
 const path = require("path");
 const { PdfReader, Rule } = require("pdfreader");
 const process = require('process');
-const {authenticate} = require('@google-cloud/local-auth');
-const {google} = require('googleapis');
+const { authenticate } = require('@google-cloud/local-auth');
+const { google } = require('googleapis');
 
 //region Read config from .env file
 
@@ -196,7 +196,7 @@ function parseSpanishFloatStringtoFloat(numString) {
  *
  * @return {Promise<OAuth2Client|null>}
  */
- async function loadSavedCredentialsIfExist() {
+async function loadSavedCredentialsIfExist() {
   try {
     const content = fs.readFileSync(TOKEN_PATH);
     const credentials = JSON.parse(content);
@@ -212,7 +212,7 @@ function parseSpanishFloatStringtoFloat(numString) {
  * @param {OAuth2Client} client
  * @return {Promise<void>}
  */
- async function saveCredentials(client) {
+async function saveCredentials(client) {
   const content = fs.readFileSync(CREDENTIALS_PATH);
   const keys = JSON.parse(content);
   const key = keys.installed || keys.web;
@@ -235,7 +235,7 @@ function parseSpanishFloatStringtoFloat(numString) {
  * it asks the user to authenticate, creates the Google client, and stores the credentials in token.json.
  *
  */
- async function authorize() {
+async function authorize() {
   let client = await loadSavedCredentialsIfExist();
   if (client) {
     return client;
@@ -254,9 +254,9 @@ function parseSpanishFloatStringtoFloat(numString) {
  * Creates a folder in Google Drive inside the specified parent folder.
  * @param {OAuth2Client} authClient An authorized OAuth2 client.
  */
- async function createFolderInGoogleDrive(authClient, folderName, parentFolderId) {
-  const drive = google.drive({version: 'v3', auth: authClient});
-  
+async function createFolderInGoogleDrive(authClient, folderName, parentFolderId) {
+  const drive = google.drive({ version: 'v3', auth: authClient });
+
   const res = await drive.files.create({
     requestBody: {
       name: folderName,
@@ -274,9 +274,9 @@ function parseSpanishFloatStringtoFloat(numString) {
  * Uploads a payroll file to Google Drive to the specified parent folder.
  * @param {OAuth2Client} authClient An authorized OAuth2 client.
  */
- async function uploadPayrollFileToGoogleDrive(authClient, payroll, parentFolderId) {
-  const drive = google.drive({version: 'v3', auth: authClient});
-  
+async function uploadPayrollFileToGoogleDrive(authClient, payroll, parentFolderId) {
+  const drive = google.drive({ version: 'v3', auth: authClient });
+
   const res = await drive.files.create({
     requestBody: {
       name: payroll.fileName,
@@ -289,6 +289,26 @@ function parseSpanishFloatStringtoFloat(numString) {
     }
   });
   console.log(res.data);
+}
+
+/**
+ * Search folder in Google Drive inside the specified parent folder.
+ * @param {OAuth2Client} authClient An authorized OAuth2 client.
+ * */
+async function searchFolder(authClient, folderName, parentFolderId) {
+  const drive = google.drive({ version: 'v3', auth: authClient });
+
+  const files = [];
+  const res = await drive.files.list({
+    q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and parents in '${parentFolderId}'`,
+    fields: 'nextPageToken, files(id, name)',
+    spaces: 'drive',
+  });
+  Array.prototype.push.apply(files, res.files);
+  res.data.files.forEach(function (folder) {
+    console.log(`Found folder. Name: ${folder.name}. Id: ${folder.id}`);
+  });
+  return res.data.files;
 }
 
 /**
@@ -313,8 +333,8 @@ async function main() {
   // Loads authorization data stored in token.json file, or requests authorization to the user and stores it in token.json
   const googleAuthClient = await authorize()
 
-  // Create folder in Google Drive
-  await createFolderInGoogleDrive(googleAuthClient, "testFolder", googleDriveParentFolderId)
+  await createFolderInGoogleDrive(googleAuthClient, "2020", googleDriveParentFolderId)
+  await searchFolder(googleAuthClient, "2020", googleDriveParentFolderId)
 
   let numPayrollFile = 0
   // Get all payroll file names
