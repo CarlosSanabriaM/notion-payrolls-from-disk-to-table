@@ -85,8 +85,9 @@ function getAllPayrollFileNames() {
 
 /**
  * Create a {@link Payroll} object from the given payroll file name.
+ * @param {Drive} drive Google Drive client.
  */
-async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName, googleAuthClient) {
+async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName, drive) {
   const payroll = new Payroll()
 
   // Store the payroll number, file path and file name
@@ -105,7 +106,7 @@ async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName, 
 
   // Upload payroll file to Google Drive
   // TODO: Create parent folder with the year
-  //uploadFileToGoogleDrive(googleAuthClient, payroll)
+  //uploadFileToGoogleDrive(drive, payroll)
 
   // Add payroll to the destination database
   // addPayrollToDestDatabase(payroll)
@@ -192,6 +193,17 @@ function parseSpanishFloatStringtoFloat(numString) {
 }
 
 /**
+ * Creates a Google Drive client to interact with Google Drive using the NodeJS SDK.
+ */
+async function createGoogleDriveClient() {
+  // Create an authorized OAuth2 client to interact with Google Drive
+  // Loads authorization data stored in token.json file, or requests authorization to the user and stores it in token.json
+  const authClient = await authorize()
+  // Create Google Drive client
+  return google.drive({ version: 'v3', auth: authClient });
+}
+
+/**
  * Reads previously authorized credentials from the save file.
  *
  * @return {Promise<OAuth2Client|null>}
@@ -252,11 +264,9 @@ async function authorize() {
 
 /**
  * Creates a folder in Google Drive inside the specified parent folder.
- * @param {OAuth2Client} authClient An authorized OAuth2 client.
+ * @param {Drive} drive Google Drive client.
  */
-async function createFolderInGoogleDrive(authClient, folderName, parentFolderId) {
-  const drive = google.drive({ version: 'v3', auth: authClient });
-
+async function createFolderInGoogleDrive(drive, folderName, parentFolderId) {
   const res = await drive.files.create({
     requestBody: {
       name: folderName,
@@ -272,11 +282,9 @@ async function createFolderInGoogleDrive(authClient, folderName, parentFolderId)
 
 /**
  * Uploads a payroll file to Google Drive to the specified parent folder.
- * @param {OAuth2Client} authClient An authorized OAuth2 client.
+ * @param {Drive} drive Google Drive client.
  */
-async function uploadPayrollFileToGoogleDrive(authClient, payroll, parentFolderId) {
-  const drive = google.drive({ version: 'v3', auth: authClient });
-
+async function uploadPayrollFileToGoogleDrive(drive, payroll, parentFolderId) {
   const res = await drive.files.create({
     requestBody: {
       name: payroll.fileName,
@@ -293,13 +301,11 @@ async function uploadPayrollFileToGoogleDrive(authClient, payroll, parentFolderI
 
 /**
  * Search folder in Google Drive inside the specified parent folder.
- * @param {OAuth2Client} authClient An authorized OAuth2 client.
+ * @param {Drive} drive Google Drive client.
  *
  * @return {string|null} The folder id if there was exactly one match, or null if there is no match.
  * */
-async function searchFolder(authClient, folderName, parentFolderId) {
-  const drive = google.drive({ version: 'v3', auth: authClient });
-
+async function searchFolderInGoogleDrive(drive, folderName, parentFolderId) {
   const res = await drive.files.list({
     q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and parents in '${parentFolderId}'`,
     fields: 'nextPageToken, files(id, name, createdTime, parents)',
@@ -336,12 +342,11 @@ async function getDestDatabaseSchema() {
  * and then add that object to the database.
  */
 async function main() {
-  // Create Google client to interact with Google Drive
-  // Loads authorization data stored in token.json file, or requests authorization to the user and stores it in token.json
-  const googleAuthClient = await authorize()
+  // Create Google Drive client
+  const drive = await createGoogleDriveClient()
 
-  await createFolderInGoogleDrive(googleAuthClient, "2020", googleDriveParentFolderId)
-  await searchFolder(googleAuthClient, "2020", googleDriveParentFolderId)
+  await createFolderInGoogleDrive(drive, "2020", googleDriveParentFolderId)
+  const folderId = await searchFolderInGoogleDrive(drive, "2020", googleDriveParentFolderId)
 
   let numPayrollFile = 0
   // Get all payroll file names
@@ -352,7 +357,7 @@ async function main() {
     numPayrollFile++
 
     // Create a Payroll object with the payroll info
-    createPayrollFromPayrollFileName(numPayrollFile, payrollFileName, googleAuthClient)
+    createPayrollFromPayrollFileName(numPayrollFile, payrollFileName, drive)
   }
 
   console.log(`\nTotal number of payroll files: ${numPayrollFile}\n`)
@@ -360,4 +365,5 @@ async function main() {
 
 // getDestDatabaseSchema() // Uncomment to see the destination database schema
 main()
+
 //endregion
