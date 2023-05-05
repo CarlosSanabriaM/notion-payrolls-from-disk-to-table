@@ -301,13 +301,14 @@ async function uploadPayrollFileToGoogleDrive(drive, payroll, parentFolderId) {
 
 /**
  * Search folder in Google Drive inside the specified parent folder.
+ * Only searches for non-trashed folders.
  * @param {Drive} drive Google Drive client.
  *
  * @return {string|null} The folder id if there was exactly one match, or null if there is no match.
  * */
 async function searchFolderInGoogleDrive(drive, folderName, parentFolderId) {
   const res = await drive.files.list({
-    q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and parents in '${parentFolderId}'`,
+    q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and parents in '${parentFolderId}' and trashed = false`,
     fields: 'nextPageToken, files(id, name, createdTime, parents)',
     spaces: 'drive',
   });
