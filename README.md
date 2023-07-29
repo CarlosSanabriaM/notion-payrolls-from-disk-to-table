@@ -28,6 +28,9 @@ npm install
 ```ini
 NOTION_KEY=<your-notion-api-key>
 NOTION_DEST_DATABASE_ID=<your-notion-destination-database-id>
+COMPANY=<company-name>
+GOOGLE_DRIVE_PARENT_FOLDER_ID=<google-drive-parent-folder-id>
+YEARS=<payroll-years>
 ```
 
 You can create your Notion API key [here](https://www.notion.com/my-integrations).
@@ -37,6 +40,8 @@ You can create your Notion API key [here](https://www.notion.com/my-integrations
 ```sh
 node index.js
 ```
+
+If you receive the following error: `GaxiosError: invalid_grant`, then you should remove the `credentials.json` file and execute the app again.
 
 ## References
 * https://github.com/makenotion/notion-sdk-js/tree/main/examples/database-email-update

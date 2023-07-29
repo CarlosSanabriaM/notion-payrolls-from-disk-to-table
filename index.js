@@ -20,6 +20,7 @@ const notion = new Client({ auth: process.env.NOTION_KEY })
 const destDatabaseId = process.env.NOTION_DEST_DATABASE_ID
 const company = process.env.COMPANY
 const googleDriveParentFolderId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID
+const years = process.env.YEARS.split(',')
 
 //endregion
 
@@ -52,14 +53,14 @@ const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
 //region Classes
 
 class Payroll {
-  payrollNumber
+  num
   fileName
   filePath
   name
+  year
   date
   isExtra
   company = company
-  file
   grossSalary
   deductions
   netSalary
@@ -91,7 +92,7 @@ async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName, 
   const payroll = new Payroll()
 
   // Store the payroll number, file path and file name
-  payroll.payrollNumber = payrollNumber
+  payroll.num = payrollNumber
   payroll.fileName = payrollFileName
   payroll.filePath = path.join(__dirname, 'payrolls', payrollFileName)
 
@@ -103,6 +104,14 @@ async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName, 
 
   // Log payroll
   console.log(payroll)
+
+  // Get the id of the payroll year folder from Google Drive
+  // The payroll file will be stored inside that folder
+  const yearFolderId = await searchFolderInGoogleDrive(drive, payroll.year, googleDriveParentFolderId)
+  // If the year folder doesn't exist, throw an Error
+  if (yearFolderId == null)
+    throw new Error(`Year folder ${payroll.year} doesn't exist in Google Drive inside the folder with id ${googleDriveParentFolderId}.
+      That year must be specified in the 'YEARS' property in the .env file, so the script can create that folder.`)
 
   // Upload payroll file to Google Drive
   // TODO: Create parent folder with the year
@@ -128,6 +137,7 @@ function setNameAndDate(payroll) {
     //console.log(`fileName: ${payroll.fileName}, year: ${year}, month: ${monthNumber}, monthSpanish: ${monthSpanish}, isExtra: ${isExtra}`);
 
     payroll.name = `${year} ${monthSpanish}${(isExtra ? " Extra" : "")}`
+    payroll.year = year
     payroll.date = `${year}-${monthNumber}-25` // all dates use 25 as the day
     payroll.isExtra = isExtra
   } else {
@@ -239,10 +249,10 @@ async function saveCredentials(client) {
 
 /**
  * Load or request authorization to call APIs.
- * 
+ *
  * - If token.json file exists and contains previously authorized credentials,
  * it uses them to create the Google client.
- * 
+ *
  * - If token.json doesn't exist or it doesn't contain previously authorized credentials,
  * it asks the user to authenticate, creates the Google client, and stores the credentials in token.json.
  *
@@ -260,6 +270,25 @@ async function authorize() {
     await saveCredentials(client);
   }
   return client;
+}
+
+/**
+ * Creates a folder in Google Drive (if not exists already).
+ * Returns the folder id.
+ * @param {Drive} drive Google Drive client.
+ */
+async function createFolderInGoogleDriveIfNotExists(drive, folderName, parentFolderId) {
+  // Search folder to see if it already exists
+  const folderId = await searchFolderInGoogleDrive(drive, folderName, parentFolderId)
+
+  if(folderId != null){
+    // If the folder exists, simply return its id
+    console.log(`Folder ${folderName} already exists. Id: ${folderId}.`)
+    return folderId
+  } else {
+    // If the folder doesn't exist, create it, and return its id
+    return await createFolderInGoogleDrive(drive, folderName, parentFolderId)
+  }
 }
 
 /**
@@ -346,8 +375,10 @@ async function main() {
   // Create Google Drive client
   const drive = await createGoogleDriveClient()
 
-  await createFolderInGoogleDrive(drive, "2020", googleDriveParentFolderId)
-  const folderId = await searchFolderInGoogleDrive(drive, "2020", googleDriveParentFolderId)
+  // Create folders in Google Drive for the specified payroll years if they don't exist
+  for(const year of years) {
+    await createFolderInGoogleDriveIfNotExists(drive, year, googleDriveParentFolderId)
+  }
 
   let numPayrollFile = 0
   // Get all payroll file names
