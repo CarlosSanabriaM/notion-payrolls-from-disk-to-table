@@ -85,9 +85,10 @@ function getAllPayrollFileNames() {
     .filter(file => !file.match('.gitkeep')) // ignore .gitkeep file
     .filter(file => years.some(year => file.includes(year))); // ignore files whose year is not in the years list
 
-  // Log file names
   console.log("\nPayroll files to process:")
   files.forEach(file => console.log(file));
+
+  console.log(`\nTotal number of payroll files: ${files.length}\n`)
 
   return files
 }
@@ -122,8 +123,7 @@ async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName, 
       That year must be specified in the 'YEARS' property in the .env file, so the script can create that folder.`)
 
   // Upload payroll file to Google Drive
-  // TODO: Create parent folder with the year
-  //uploadFileToGoogleDrive(drive, payroll)
+  uploadPayrollFileToGoogleDrive(drive, payroll, yearFolderId)
 
   // Add payroll to the destination database
   // addPayrollToDestDatabase(payroll)
@@ -322,6 +322,7 @@ async function createFolderInGoogleDrive(drive, folderName, parentFolderId) {
  * @param {Drive} drive Google Drive client.
  */
 async function uploadPayrollFileToGoogleDrive(drive, payroll, parentFolderId) {
+  console.log(`Upload payroll file to Google Drive. Payroll file name: ${payroll.fileName}. Parent folder id: ${parentFolderId}.`);
   const res = await drive.files.create({
     requestBody: {
       name: payroll.fileName,
@@ -385,6 +386,7 @@ async function main() {
 
   // Create folders in Google Drive for the specified payroll years if they don't exist
   printYearsToProcess()
+  console.log("Create folders for the payroll years if they don't exist.")
   for(const year of years) {
     await createFolderInGoogleDriveIfNotExists(drive, year, googleDriveParentFolderId)
   }
@@ -400,8 +402,6 @@ async function main() {
     // Create a Payroll object with the payroll info
     createPayrollFromPayrollFileName(numPayrollFile, payrollFileName, drive)
   }
-
-  console.log(`\nTotal number of payroll files: ${numPayrollFile}\n`)
 }
 
 // getDestDatabaseSchema() // Uncomment to see the destination database schema
