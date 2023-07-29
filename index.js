@@ -64,6 +64,7 @@ class Payroll {
   grossSalary
   deductions
   netSalary
+  googleDriveFileUrl
 }
 
 //endregion
@@ -123,10 +124,11 @@ async function createPayrollFromPayrollFileName(payrollNumber, payrollFileName, 
       That year must be specified in the 'YEARS' property in the .env file, so the script can create that folder.`)
 
   // Upload payroll file to Google Drive
-  uploadPayrollFileToGoogleDrive(drive, payroll, yearFolderId)
+  const fileId = await uploadPayrollFileToGoogleDrive(drive, payroll, yearFolderId)
+  payroll.googleDriveFileUrl = getGoogleDriveFileUrlFromId(fileId)
 
   // Add payroll to the destination database
-  // addPayrollToDestDatabase(payroll)
+  addPayrollToDestDatabase(payroll)
 }
 
 /**
@@ -319,6 +321,7 @@ async function createFolderInGoogleDrive(drive, folderName, parentFolderId) {
 
 /**
  * Uploads a payroll file to Google Drive to the specified parent folder.
+ * Returns the payroll file id.
  * @param {Drive} drive Google Drive client.
  */
 async function uploadPayrollFileToGoogleDrive(drive, payroll, parentFolderId) {
@@ -335,6 +338,7 @@ async function uploadPayrollFileToGoogleDrive(drive, payroll, parentFolderId) {
     }
   });
   console.log(res.data);
+  return res.data.id
 }
 
 /**
@@ -364,11 +368,68 @@ async function searchFolderInGoogleDrive(drive, folderName, parentFolderId) {
 }
 
 /**
+ * Returns the URL that can be used to view the file with the specified id.
+ * @param {string} fileId Google Drive file id.
+ */
+function getGoogleDriveFileUrlFromId(fileId) {
+  return `https://drive.google.com/file/d/${fileId}/view`
+}
+
+/**
  * Prints to the console the destination database schema.
  */
 async function getDestDatabaseSchema() {
   const response = await notion.databases.retrieve({ database_id: destDatabaseId })
   console.log(response)
+}
+
+/**
+ * Adds a {@link Payroll} to the Notion destination database.
+ */
+async function addPayrollToDestDatabase(payroll) {
+  try {
+    await notion.pages.create({
+      parent: { database_id: destDatabaseId },
+      // https://developers.notion.com/reference/property-value-object
+      properties: {
+        "Nómina": {
+          title: [
+            {
+              "text": {
+                "content": payroll.name,
+              },
+            },
+          ],
+        },
+        "Fecha": {
+          "date": {
+            "start": payroll.date
+          }
+        },
+        "Empresa": {
+          "select": {
+            "name": payroll.company
+          }
+        },
+        "Fichero": {
+          "url": payroll.googleDriveFileUrl
+        },
+        "Dinero bruto": {
+          "number": payroll.grossSalary
+        },
+        "Dinero a deducir": {
+          "number": payroll.deductions
+        },
+        "Dinero neto": {
+          "number": payroll.netSalary
+        }
+      },
+    })
+    console.log(`Payroll ${payroll.num} (${payroll.fileName}) successfully added to the destination database.`)
+  } catch (error) {
+    console.error(`Payroll ${payroll.num} (${payroll.fileName}) could not be added to the destination database.`)
+    console.error("Error:", error.body)
+  }
 }
 
 //endregion

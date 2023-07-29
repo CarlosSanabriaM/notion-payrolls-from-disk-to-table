@@ -33,9 +33,20 @@ GOOGLE_DRIVE_PARENT_FOLDER_ID=<google-drive-parent-folder-id>
 YEARS=<payroll-years>
 ```
 
-You can create your Notion API key [here](https://www.notion.com/my-integrations).
+### 3. Google Drive configuration
+TO-DO
 
-### 3. Run code
+### 4. Notion configuration
+To get the `NOTION_KEY` value:
+1. Create your Notion API key [here](https://www.notion.com/my-integrations)
+2. Copy that API key and set it in the `NOTION_KEY` env var (it will be something like `secret_dA89e3u9ufghvusrGqNS4QXiJHKxhTqimFyiAGPQi7n`)
+
+To get the `NOTION_DEST_DATABASE_ID` value:
+1. Go to the Notion database and do the following: `Options > Copy link`
+2. The database id is the value immediatelly after the workspace id (example: `https://www.notion.so/<workspace-id>/<database-id>?<other-parameters>`)
+3. Copy that `<workspace-id>` value and set it in the `NOTION_DEST_DATABASE_ID` env var
+
+### 5. Run code
 
 ```sh
 node index.js
