@@ -70,16 +70,24 @@ class Payroll {
 
 //region Functions
 
+function printYearsToProcess() {
+  console.log("Years to process:")
+  years.forEach(year => console.log(year));
+  console.log("")
+}
+
 /**
  * Gets all the files from the payrolls folder.
  */
 function getAllPayrollFileNames() {
   const folderPath = path.join(__dirname, 'payrolls')
   const files = fs.readdirSync(folderPath)
-    .filter(file => !file.match('.gitkeep')); // ignore .gitkeep file
+    .filter(file => !file.match('.gitkeep')) // ignore .gitkeep file
+    .filter(file => years.some(year => file.includes(year))); // ignore files whose year is not in the years list
 
   // Log file names
-  files.forEach((file) => console.log(file));
+  console.log("\nPayroll files to process:")
+  files.forEach(file => console.log(file));
 
   return files
 }
@@ -376,6 +384,7 @@ async function main() {
   const drive = await createGoogleDriveClient()
 
   // Create folders in Google Drive for the specified payroll years if they don't exist
+  printYearsToProcess()
   for(const year of years) {
     await createFolderInGoogleDriveIfNotExists(drive, year, googleDriveParentFolderId)
   }
