@@ -1,6 +1,6 @@
 # Payrolls from disk to Notion table
 
-This script uploads a bunch of payrolls to a Notion table and Google Drive.
+This script uploads a bunch of payrolls to a Notion database and Google Drive.
 
 * The file itself is stored in Google Drive
 * Some info and the URL of each file is also stored in a Notion database
